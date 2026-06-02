@@ -48,7 +48,10 @@ def main() -> None:
     print("=" * 64)
     moa.bootstrap_season(1, num_episodes=8, seed=7)
     ps = moa.db.get_puzzle_state(1)
-    print(f"  Universe : {moa.db.get_universe()['title']}")
+    uni = moa.db.get_universe()
+    print(f"  Universe : {uni['title']}")
+    print(f"  Setting  : {uni['setting']}")
+    print(f"  Conflict : {uni['central_conflict']}")
     print(f"  Puzzle   : {ps['grid_size']} grid, {len(ps['clues'])} clues "
           f"(uniquely solvable)")
     print(f"  Solution : culprit = {ps['solution_key']['culprit']} "
@@ -58,6 +61,8 @@ def main() -> None:
     print("Producing S01E01 through the pipeline")
     print("=" * 64)
     bundle = moa.produce_episode(1, 1)
+    print(f"  Cold open: {bundle.script.scenes[0].dialogue[0]}")
+    print(f"  Cliffhanger: {bundle.script.scenes[-1].dialogue[0]}")
 
     print(f"\nQA report for {bundle.ref}: "
           f"{'PASS ✅' if bundle.qa.passed else 'FAIL ❌'}")
