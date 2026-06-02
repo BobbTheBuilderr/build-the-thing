@@ -29,18 +29,36 @@ class StoryArchitect(BaseAgent):
     agent_id = "SA-01"
     name = "Story Architect"
 
+    _SYS = ("You are SA-01, story architect for a dark, intelligent, emotionally "
+            "charged serialized mystery built for replay value. Reply with vivid, "
+            "concrete prose only — no preamble, no markdown, no lists.")
+
     def build_universe(self, cast_size: int = 5) -> Universe:
         cast_size = max(4, min(8, cast_size))
         cast = [Character(name=n, role=r, traits=t, motivation=m,
                           appearance_anchor=f"{n}: see visual bible")
                 for (n, r, t, m) in _CAST[:cast_size]]
+        title = "The Ashford Inheritance"
+        names = ", ".join(c.name for c in cast)
+        setting = self.prose(
+            self._SYS,
+            f"In two sentences, describe the setting of a mystery titled "
+            f"'{title}': {len(cast)} guests ({names}) trapped on a storm-cut "
+            f"island estate the night the patriarch dies.",
+            "A storm-cut island estate where the guests are trapped the night "
+            "the patriarch dies.")
+        conflict = self.prose(
+            self._SYS,
+            f"In one sentence, state the central season-long mystery of '{title}': "
+            f"one guest caused the death, and the truth is hidden in where each "
+            f"guest was, what they held, and why.",
+            "One guest is responsible for the death; the truth is hidden in where "
+            "everyone was, what they held, and why.")
         universe = Universe(
-            title="The Ashford Inheritance",
+            title=title,
             genre="mystery",
-            setting="A storm-cut island estate where five guests are trapped the "
-                    "night the patriarch dies.",
-            central_conflict="One guest is responsible for the death; the truth is "
-                             "hidden in where everyone was, what they held, and why.",
+            setting=setting,
+            central_conflict=conflict,
             tone="Dark, intelligent, emotionally charged — built for replay and debate.",
             cast=cast,
         )

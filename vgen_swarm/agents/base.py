@@ -44,3 +44,19 @@ class BaseAgent:
         return self.audit.record(
             f"{self.agent_id}:{self.name}", action, output,
             episode_ref=episode_ref, status=status, detail=detail)
+
+    def prose(self, system: str, prompt: str, fallback: str, *,
+              max_tokens: int = 512, episode_ref: Optional[str] = None) -> str:
+        """Ask the configured LLM for prose, falling back to ``fallback`` when no
+        real LLM is wired (mock) or the call fails. Keeps the pipeline runnable
+        offline and resilient to API/network errors."""
+        llm = self.providers.llm
+        if not getattr(llm, "live", False):
+            return fallback
+        try:
+            text = llm.complete(system, prompt, max_tokens=max_tokens).strip()
+            return text or fallback
+        except Exception as exc:  # noqa: BLE001 — never let prose gen break a stage
+            self.log("llm_fallback", {"error": str(exc)},
+                     episode_ref=episode_ref, status="retry")
+            return fallback

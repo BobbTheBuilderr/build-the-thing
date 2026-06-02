@@ -14,9 +14,11 @@ from .base import (
     ProviderBundle,
 )
 from .mock import default_mock_bundle
+from .llm import DeepSeekLLM, ClaudeLLM, best_available_llm
 
 __all__ = [
     "LLMProvider", "VideoProvider", "MusicProvider", "SFXProvider",
     "TranscriptionProvider", "TranslationProvider", "ImageProvider",
     "SocialProvider", "ProviderBundle", "default_mock_bundle",
+    "DeepSeekLLM", "ClaudeLLM", "best_available_llm",
 ]

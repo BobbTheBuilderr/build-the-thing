@@ -16,7 +16,7 @@ from pathlib import Path
 
 from vgen_swarm.config import SwarmConfig
 from vgen_swarm.orchestrator import MasterOrchestrator
-from vgen_swarm.providers import default_mock_bundle
+from vgen_swarm.providers import best_available_llm, default_mock_bundle
 from vgen_swarm.state.db import StateDB
 
 
@@ -35,7 +35,12 @@ def main() -> None:
 
     config = SwarmConfig(workdir=str(workdir), db_path=":memory:",
                          audit_path=str(workdir / "audit.log"))
-    moa = MasterOrchestrator(default_mock_bundle(), config=config,
+    # Real LLM for story/script prose if a key is set (DeepSeek, then Claude);
+    # every other service stays mocked. Set DEEPSEEK_API_KEY to go live on prose.
+    llm = best_available_llm()
+    print(f"LLM provider: {type(llm).__name__} "
+          f"(prose is {'LIVE' if getattr(llm, 'live', False) else 'templated/offline'})")
+    moa = MasterOrchestrator(default_mock_bundle(llm=llm), config=config,
                              db=StateDB(":memory:"))
 
     print("=" * 64)

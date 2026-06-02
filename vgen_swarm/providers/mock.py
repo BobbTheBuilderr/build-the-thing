@@ -31,9 +31,11 @@ def _stable(*parts: str) -> str:
 
 
 class MockLLM:
-    """Deterministic templated 'LLM'. Echoes a structured, content-shaped reply
-    so downstream code has something realistic to parse. Real builds swap in the
-    Claude API adapter (see ``llm.py``)."""
+    """Deterministic templated 'LLM'. Marked ``live = False`` so agents use their
+    built-in templates instead of this placeholder. Real builds swap in the
+    DeepSeek or Claude adapter (see ``llm.py``)."""
+    live = False
+
     def complete(self, system: str, prompt: str, *, max_tokens: int = 1024) -> str:
         return f"[mock-llm:{_stable(system, prompt)}] {prompt[:80]}"
 
@@ -120,11 +122,13 @@ class MockSocial:
                 "scheduled_ts": scheduled_ts}
 
 
-def default_mock_bundle():
+def default_mock_bundle(llm=None):
+    """All-mock provider bundle. Pass ``llm`` to use a real LLM (e.g. DeepSeek)
+    for story/script prose while every other service stays mocked."""
     from .base import ProviderBundle
     platforms = ["tiktok", "youtube", "instagram", "facebook", "x"]
     return ProviderBundle(
-        llm=MockLLM(),
+        llm=llm or MockLLM(),
         video=MockVideo(),
         music=MockMusic(),
         sfx=MockSFX(),

@@ -25,9 +25,22 @@ class ScriptWriter(BaseAgent):
         clue_lines = [p["narrative_form"] for p in placements]
         clue_ids = [p["clue_id"] for p in placements]
 
+        # LLM-enriched hook lines (fall back to templates offline). The clue beat
+        # stays literal so the embedded logic survives verbatim.
+        sys = ("You are SA-03, scriptwriter for a dark serialized mystery. Write a "
+               "single line of taut spoken dialogue — no quotes, no stage "
+               "directions, under 80 characters.")
+        cold_line = self.prose(
+            sys, f"Cold-open hook for '{outline['title']}': {outline['cold_open']}",
+            "...he didn't fall. Someone was there.", episode_ref=ref)
+        end_line = self.prose(
+            sys, f"Ending cliffhanger line for '{outline['title']}': "
+                 f"{outline['ending_hook']}",
+            "Then you already know who lied.", episode_ref=ref)
+
         # Beat layout across a ~140s episode (within the 90-180s window).
         scenes = [
-            Scene(0, outline["cold_open"], ["...he didn't fall. Someone was there."],
+            Scene(0, outline["cold_open"], [cold_line],
                   0.0, 10.0, "tension-spike", "match_cut"),
             Scene(1, outline["main_scene"],
                   ["Walk me through it again — where were you?",
@@ -35,7 +48,7 @@ class ScriptWriter(BaseAgent):
                   10.0, 70.0, "simmer", "cut"),
             Scene(2, outline["clue_beat"], clue_lines or ["(a glance says enough)"],
                   70.0, 120.0, "reveal", "whip_pan"),
-            Scene(3, outline["ending_hook"], ["Then you already know who lied."],
+            Scene(3, outline["ending_hook"], [end_line],
                   120.0, 140.0, "cliff", "fade"),
         ]
         script = Script(season=season, episode=episode, title=outline["title"],

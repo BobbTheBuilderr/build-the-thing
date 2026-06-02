@@ -111,10 +111,32 @@ assert is_uniquely_solvable(puzzle)
 
 ## Going live
 
-1. `pip install -r requirements-optional.txt` (at minimum `anthropic`).
-2. Set credentials in your secrets vault / environment (`ANTHROPIC_API_KEY`, the
-   video/audio/social keys). **Never hardcode keys** — providers read the
-   environment.
+### Step B (start here) — real story/script prose via DeepSeek or Claude
+
+The LLM is the cheapest, lowest-risk service to make real. **DeepSeek is
+supported out of the box** (its API is OpenAI-compatible) with no extra packages:
+
+```bash
+export DEEPSEEK_API_KEY=sk-...      # uses the deepseek-chat model
+python3 run_demo.py                 # prints "LLM provider: DeepSeekLLM (prose is LIVE)"
+```
+
+`best_available_llm()` selects DeepSeek when `DEEPSEEK_API_KEY` is set, else
+Claude when `ANTHROPIC_API_KEY` is set (requires `pip install anthropic`), else
+the offline mock. SA-01 (universe prose) and SA-03 (script hook lines) call the
+LLM and fall back to deterministic templates if no key is set or the call fails,
+so the pipeline never breaks. To pick the reasoning model:
+
+```python
+from vgen_swarm.providers import DeepSeekLLM, default_mock_bundle
+bundle = default_mock_bundle(llm=DeepSeekLLM(model="deepseek-reasoner"))
+```
+
+### Full production — the remaining services
+
+1. `pip install -r requirements-optional.txt` for whichever adapters you wire.
+2. Set credentials in your secrets vault / environment (video/audio/social keys).
+   **Never hardcode keys** — providers read the environment.
 3. Implement the real adapters against the protocols in
    `vgen_swarm/providers/base.py` (the mocks in `mock.py` show the exact shape
    each must return), and build a `ProviderBundle` with them instead of

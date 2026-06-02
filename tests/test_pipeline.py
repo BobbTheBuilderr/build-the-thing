@@ -107,5 +107,37 @@ class TestSubtitles(unittest.TestCase):
                     self.assertLessEqual(len(line), SUBTITLE_MAX_CHARS_PER_LINE)
 
 
+class TestLLMSelection(unittest.TestCase):
+    def test_no_keys_falls_back_to_mock(self):
+        import os
+        from vgen_swarm.providers import best_available_llm
+        saved = {k: os.environ.pop(k, None)
+                 for k in ("DEEPSEEK_API_KEY", "ANTHROPIC_API_KEY")}
+        try:
+            llm = best_available_llm()
+            self.assertEqual(type(llm).__name__, "MockLLM")
+            self.assertFalse(getattr(llm, "live", False))
+        finally:
+            os.environ.update({k: v for k, v in saved.items() if v is not None})
+
+    def test_deepseek_selected_when_key_present(self):
+        import os
+        from vgen_swarm.providers import best_available_llm, DeepSeekLLM
+        os.environ["DEEPSEEK_API_KEY"] = "sk-test"
+        try:
+            llm = best_available_llm()
+            self.assertIsInstance(llm, DeepSeekLLM)
+            self.assertTrue(llm.live)
+        finally:
+            del os.environ["DEEPSEEK_API_KEY"]
+
+    def test_mock_llm_keeps_templates_via_prose_helper(self):
+        # With a non-live LLM, agents must use deterministic fallback prose.
+        moa = fresh_moa()
+        moa.bootstrap_season(1, num_episodes=8, seed=7)
+        universe = moa.db.get_universe()
+        self.assertIn("estate", universe["setting"].lower())
+
+
 if __name__ == "__main__":
     unittest.main()
