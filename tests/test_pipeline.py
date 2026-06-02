@@ -93,6 +93,17 @@ class TestMetadataLimits(unittest.TestCase):
 
 
 class TestSubtitles(unittest.TestCase):
+    def _subs_with_translation(self, translation):
+        from vgen_swarm.providers import default_mock_bundle
+        cfg = SwarmConfig(workdir="build_output_test", db_path=":memory:",
+                          audit_path="build_output_test/a.log")
+        moa = MasterOrchestrator(default_mock_bundle(translation=translation),
+                                 config=cfg, db=StateDB(":memory:"))
+        moa.bootstrap_season(1, num_episodes=8, seed=7)
+        script = moa.sa03.write(1, 1)
+        audio = moa.sa05.compose(script)
+        return moa, moa.sa06.build(script, audio.path)
+
     def test_line_length_and_languages(self):
         moa = fresh_moa()
         moa.bootstrap_season(1, num_episodes=8, seed=7)
@@ -105,6 +116,39 @@ class TestSubtitles(unittest.TestCase):
             for cue in track.cues:
                 for line in cue["text"].split("\n"):
                     self.assertLessEqual(len(line), SUBTITLE_MAX_CHARS_PER_LINE)
+
+    def test_translation_selected_when_deepseek_key_present(self):
+        import os
+        from vgen_swarm.providers import best_available_translation, LLMTranslation
+        os.environ["DEEPSEEK_API_KEY"] = "sk-test"
+        try:
+            self.assertIsInstance(best_available_translation(), LLMTranslation)
+        finally:
+            del os.environ["DEEPSEEK_API_KEY"]
+
+    def test_paraphrasing_backtranslation_does_not_false_fail(self):
+        # back-translation that paraphrases (high overlap) must not raise
+        class Paraphrase:
+            live = True
+            name = "paraphrase"
+            def translate(self, text, target_lang):
+                return f"<{target_lang}>{text}"
+            def back_translate(self, text, source_lang):
+                return text.split(">", 1)[-1] + " indeed"  # minor drift
+        _, subs = self._subs_with_translation(Paraphrase())
+        self.assertEqual(set(subs.tracks), set(SwarmConfig().languages))
+
+    def test_broken_translation_is_caught(self):
+        from vgen_swarm.agents.base import QualityCheckError
+        class Broken:
+            live = True
+            name = "broken"
+            def translate(self, text, target_lang):
+                return "xx"
+            def back_translate(self, text, source_lang):
+                return "zzzzz unrelated garbage qqqq"  # ~0 overlap
+        with self.assertRaises(QualityCheckError):
+            self._subs_with_translation(Broken())
 
 
 class TestLLMSelection(unittest.TestCase):

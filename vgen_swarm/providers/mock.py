@@ -124,10 +124,10 @@ class MockSocial:
                 "scheduled_ts": scheduled_ts}
 
 
-def default_mock_bundle(llm=None, image=None):
-    """All-mock provider bundle. Pass ``llm`` and/or ``image`` to use real
-    backends (e.g. DeepSeek for prose, DALL·E 3 / FLUX for thumbnails) while
-    every other service stays mocked."""
+def default_mock_bundle(llm=None, image=None, translation=None):
+    """All-mock provider bundle. Pass ``llm``, ``image``, and/or ``translation``
+    to use real backends (e.g. DeepSeek for prose + subtitle translation,
+    DALL·E 3 / FLUX for thumbnails) while every other service stays mocked."""
     from .base import ProviderBundle
     platforms = ["tiktok", "youtube", "instagram", "facebook", "x"]
     return ProviderBundle(
@@ -136,7 +136,7 @@ def default_mock_bundle(llm=None, image=None):
         music=MockMusic(),
         sfx=MockSFX(),
         transcription=MockTranscription(),
-        translation=MockTranslation(),
+        translation=translation or MockTranslation(),
         image=image or MockImage(),
         social={p: MockSocial(p) for p in platforms},
     )

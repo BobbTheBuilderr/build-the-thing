@@ -152,6 +152,22 @@ from vgen_swarm.providers import default_mock_bundle, best_available_llm, Togeth
 bundle = default_mock_bundle(llm=best_available_llm(), image=TogetherFlux())
 ```
 
+### Step B continued — real subtitle translation (reuses your DeepSeek key)
+
+The 6-language subtitles can be translated by the same LLM you already use for
+prose — no new account needed:
+
+```bash
+export DEEPSEEK_API_KEY=sk-...     # also powers translation
+python3 run_demo.py                # "Translation provider: ... (LIVE)" + sample lines
+```
+
+`best_available_translation()` uses an LLM translator when a live LLM is wired
+(DeepSeek, then Claude), else the offline mock. The back-translation QA spot
+check (~20% of lines) is similarity-based: it tolerates normal paraphrasing and
+only fails the episode on systemic breakdown. DeepL can be added later as an
+alternative `TranslationProvider`.
+
 ### Full production — the remaining services
 
 1. `pip install -r requirements-optional.txt` for whichever adapters you wire.
