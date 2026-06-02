@@ -39,21 +39,30 @@ class StoryArchitect(BaseAgent):
                           appearance_anchor=f"{n}: see visual bible")
                 for (n, r, t, m) in _CAST[:cast_size]]
         title = "The Ashford Inheritance"
+        victim = "Julian Ashford"
+        manor = "Ashford Manor"
         names = ", ".join(c.name for c in cast)
+        # Canon shared by every prose call so the LLM cannot invent conflicting
+        # names, places, dates, or guest counts (continuity guarantee).
+        canon = (f"CANON — use ONLY these facts; do NOT invent new names, places, "
+                 f"dates, or guest counts. Title: '{title}'. Setting: {manor}, a "
+                 f"storm-cut island estate. Victim: {victim}, the patriarch, found "
+                 f"dead the night of a storm. The {len(cast)} trapped guests are: "
+                 f"{names}.")
         setting = self.prose(
             self._SYS,
-            f"In two sentences, describe the setting of a mystery titled "
-            f"'{title}': {len(cast)} guests ({names}) trapped on a storm-cut "
-            f"island estate the night the patriarch dies.",
-            "A storm-cut island estate where the guests are trapped the night "
-            "the patriarch dies.")
+            f"{canon}\n\nIn two sentences, describe the atmosphere of {manor} the "
+            f"night {victim} dies. Stay strictly within canon.",
+            f"A storm-cut island estate, {manor}, where the guests are trapped the "
+            f"night the patriarch {victim} dies.")
         conflict = self.prose(
             self._SYS,
-            f"In one sentence, state the central season-long mystery of '{title}': "
-            f"one guest caused the death, and the truth is hidden in where each "
-            f"guest was, what they held, and why.",
-            "One guest is responsible for the death; the truth is hidden in where "
-            "everyone was, what they held, and why.")
+            f"{canon}\n\nEstablished setting:\n{setting}\n\nIn one sentence, state "
+            f"the central season-long mystery: one of the named guests caused "
+            f"{victim}'s death, and the truth is hidden in where each guest was, "
+            f"what they held, and why. Use only the canon names — no new ones.",
+            f"One guest caused {victim}'s death; the truth is hidden in where "
+            f"everyone was, what they held, and why.")
         universe = Universe(
             title=title,
             genre="mystery",
