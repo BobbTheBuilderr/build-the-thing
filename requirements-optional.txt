@@ -1,0 +1,12 @@
+# The core system runs on the Python standard library alone (no install needed).
+# These packages are only required when wiring the *real* provider adapters in
+# place of the offline mocks in vgen_swarm/providers/mock.py.
+
+anthropic            # LLM (Claude API) — story/script/metadata/translation
+# runwayml           # video generation (or Kling / Pika SDKs)
+# suno-api           # BGM generation (or Udio)
+# elevenlabs         # SFX (or freesound API client)
+# openai-whisper     # subtitle timing alignment
+# deepl              # translation
+# google-api-python-client   # YouTube Data API v3
+# requests           # TikTok / Meta Graph / X API v2 calls
