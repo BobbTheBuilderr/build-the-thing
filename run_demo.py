@@ -16,7 +16,8 @@ from pathlib import Path
 
 from vgen_swarm.config import SwarmConfig
 from vgen_swarm.orchestrator import MasterOrchestrator
-from vgen_swarm.providers import best_available_llm, default_mock_bundle
+from vgen_swarm.providers import (best_available_image, best_available_llm,
+                                  default_mock_bundle)
 from vgen_swarm.state.db import StateDB
 
 
@@ -38,10 +39,14 @@ def main() -> None:
     # Real LLM for story/script prose if a key is set (DeepSeek, then Claude);
     # every other service stays mocked. Set DEEPSEEK_API_KEY to go live on prose.
     llm = best_available_llm()
-    print(f"LLM provider: {type(llm).__name__} "
-          f"(prose is {'LIVE' if getattr(llm, 'live', False) else 'templated/offline'})")
-    moa = MasterOrchestrator(default_mock_bundle(llm=llm), config=config,
-                             db=StateDB(":memory:"))
+    image = best_available_image()
+    img_live = type(image).__name__ != "MockImage"
+    print(f"LLM provider  : {type(llm).__name__} "
+          f"(prose {'LIVE' if getattr(llm, 'live', False) else 'templated/offline'})")
+    print(f"Image provider: {getattr(image, 'name', type(image).__name__)} "
+          f"({'LIVE' if img_live else 'mock placeholder'})")
+    moa = MasterOrchestrator(default_mock_bundle(llm=llm, image=image),
+                             config=config, db=StateDB(":memory:"))
 
     print("=" * 64)
     print("VGEN-SWARM — Season 1 bootstrap (universe → puzzle → outlines)")
@@ -63,6 +68,8 @@ def main() -> None:
     bundle = moa.produce_episode(1, 1)
     print(f"  Cold open: {bundle.script.scenes[0].dialogue[0]}")
     print(f"  Cliffhanger: {bundle.script.scenes[-1].dialogue[0]}")
+    thumb = next(iter(bundle.meta.platforms.values())).thumbnail_path
+    print(f"  Thumbnail: {thumb}")
 
     print(f"\nQA report for {bundle.ref}: "
           f"{'PASS ✅' if bundle.qa.passed else 'FAIL ❌'}")

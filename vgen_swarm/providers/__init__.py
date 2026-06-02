@@ -15,10 +15,12 @@ from .base import (
 )
 from .mock import default_mock_bundle
 from .llm import DeepSeekLLM, ClaudeLLM, best_available_llm
+from .image import OpenAIImage, TogetherFlux, best_available_image
 
 __all__ = [
     "LLMProvider", "VideoProvider", "MusicProvider", "SFXProvider",
     "TranscriptionProvider", "TranslationProvider", "ImageProvider",
     "SocialProvider", "ProviderBundle", "default_mock_bundle",
     "DeepSeekLLM", "ClaudeLLM", "best_available_llm",
+    "OpenAIImage", "TogetherFlux", "best_available_image",
 ]

@@ -104,6 +104,8 @@ class MockTranslation:
 
 
 class MockImage:
+    name = "mock-image"
+
     def generate_image(self, prompt: str, out_path: str) -> dict:
         meta = {"kind": "thumbnail", "prompt": prompt, "width": 1080, "height": 1920}
         _write_placeholder(out_path, meta)
@@ -122,9 +124,10 @@ class MockSocial:
                 "scheduled_ts": scheduled_ts}
 
 
-def default_mock_bundle(llm=None):
-    """All-mock provider bundle. Pass ``llm`` to use a real LLM (e.g. DeepSeek)
-    for story/script prose while every other service stays mocked."""
+def default_mock_bundle(llm=None, image=None):
+    """All-mock provider bundle. Pass ``llm`` and/or ``image`` to use real
+    backends (e.g. DeepSeek for prose, DALL·E 3 / FLUX for thumbnails) while
+    every other service stays mocked."""
     from .base import ProviderBundle
     platforms = ["tiktok", "youtube", "instagram", "facebook", "x"]
     return ProviderBundle(
@@ -134,6 +137,6 @@ def default_mock_bundle(llm=None):
         sfx=MockSFX(),
         transcription=MockTranscription(),
         translation=MockTranslation(),
-        image=MockImage(),
+        image=image or MockImage(),
         social={p: MockSocial(p) for p in platforms},
     )

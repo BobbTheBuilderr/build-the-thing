@@ -132,6 +132,26 @@ from vgen_swarm.providers import DeepSeekLLM, default_mock_bundle
 bundle = default_mock_bundle(llm=DeepSeekLLM(model="deepseek-reasoner"))
 ```
 
+### Step B continued — real thumbnails via DALL·E 3 or FLUX
+
+Thumbnail image generation is another single, self-contained API (stdlib only):
+
+```bash
+export OPENAI_API_KEY=sk-...      # DALL·E 3 (portrait 1024x1792), or
+export TOGETHER_API_KEY=...       # FLUX via Together AI
+python3 run_demo.py               # prints "Image provider: dall-e-3 (LIVE)"
+```
+
+`best_available_image()` picks DALL·E 3 when `OPENAI_API_KEY` is set, else FLUX
+when `TOGETHER_API_KEY` is set, else the offline mock. Real calls are wrapped so
+an API/network error falls back to the placeholder rather than breaking the run.
+The generated PNG path is printed by the demo. Mix and match providers freely:
+
+```python
+from vgen_swarm.providers import default_mock_bundle, best_available_llm, TogetherFlux
+bundle = default_mock_bundle(llm=best_available_llm(), image=TogetherFlux())
+```
+
 ### Full production — the remaining services
 
 1. `pip install -r requirements-optional.txt` for whichever adapters you wire.

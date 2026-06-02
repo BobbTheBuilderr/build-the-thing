@@ -131,6 +131,41 @@ class TestLLMSelection(unittest.TestCase):
         finally:
             del os.environ["DEEPSEEK_API_KEY"]
 
+    def test_image_no_keys_falls_back_to_mock(self):
+        import os
+        from vgen_swarm.providers import best_available_image
+        saved = {k: os.environ.pop(k, None)
+                 for k in ("OPENAI_API_KEY", "TOGETHER_API_KEY")}
+        try:
+            self.assertEqual(type(best_available_image()).__name__, "MockImage")
+        finally:
+            os.environ.update({k: v for k, v in saved.items() if v is not None})
+
+    def test_image_selected_when_key_present(self):
+        import os
+        from vgen_swarm.providers import best_available_image
+        os.environ["OPENAI_API_KEY"] = "sk-test"
+        try:
+            img = best_available_image()
+            self.assertEqual(img.name, "dall-e-3")  # wrapped real provider
+        finally:
+            del os.environ["OPENAI_API_KEY"]
+
+    def test_image_fallback_on_api_error(self):
+        # a real provider that raises must still yield a placeholder file
+        import tempfile, os
+        from vgen_swarm.providers.image import ImageWithFallback
+
+        class Boom:
+            name = "boom"
+            def generate_image(self, prompt, out_path):
+                raise RuntimeError("network down")
+        with tempfile.TemporaryDirectory() as d:
+            out = os.path.join(d, "t.png")
+            meta = ImageWithFallback(Boom()).generate_image("x", out)
+            self.assertTrue(os.path.exists(out))
+            self.assertIn("network down", meta["fallback_error"])
+
     def test_mock_llm_keeps_templates_via_prose_helper(self):
         # With a non-live LLM, agents must use deterministic fallback prose.
         moa = fresh_moa()
