@@ -218,5 +218,61 @@ class TestLLMSelection(unittest.TestCase):
         self.assertIn("estate", universe["setting"].lower())
 
 
+class TestBudgetPipeline(unittest.TestCase):
+    def test_budget_bundle_uses_slideshow_and_free_audio(self):
+        from vgen_swarm.providers import (budget_bundle, SlideshowVideo,
+                                          FreeMusic, FreeSFX)
+        b = budget_bundle()
+        self.assertIsInstance(b.video, SlideshowVideo)
+        self.assertIsInstance(b.music, FreeMusic)
+        self.assertIsInstance(b.sfx, FreeSFX)
+
+    def test_full_mock_episode_estimate_is_zero(self):
+        from vgen_swarm.cost import estimate_episode
+        from vgen_swarm.providers import default_mock_bundle
+        est = estimate_episode(default_mock_bundle(), duration_sec=140,
+                               num_scenes=4, num_dialogue_lines=5,
+                               num_languages=6, num_platforms=5)
+        self.assertEqual(est.total, 0.0)
+
+    def test_paid_video_estimate_is_large_and_shows_comparison(self):
+        from vgen_swarm.cost import estimate_episode
+        from vgen_swarm.providers import default_mock_bundle
+        b = default_mock_bundle()
+        class Veo: name = "veo3"
+        b.video = Veo()
+        est = estimate_episode(b, duration_sec=140, num_scenes=4,
+                               num_dialogue_lines=5, num_languages=6,
+                               num_platforms=5)
+        self.assertAlmostEqual(est.total, 56.0, places=1)
+
+    def test_budget_cap_blocks_expensive_episode(self):
+        from vgen_swarm.cost import BudgetExceeded
+        from vgen_swarm.providers import default_mock_bundle
+        cfg = SwarmConfig(workdir="build_output_test", db_path=":memory:",
+                          audit_path="build_output_test/a.log",
+                          max_cost_per_episode=1.0)
+        b = default_mock_bundle()
+        class Veo: name = "veo3"
+        b.video = Veo()
+        moa = MasterOrchestrator(b, config=cfg, db=StateDB(":memory:"))
+        moa.bootstrap_season(1, num_episodes=8, seed=7)
+        with self.assertRaises(BudgetExceeded):
+            moa.produce_episode(1, 1)
+        entry = moa.db.get_queue_entry("S01E01")
+        self.assertEqual(entry["stage"], Stage.FAILED.value)
+        self.assertTrue(entry["data"]["budget_exceeded"])
+
+    def test_budget_cap_allows_cheap_episode(self):
+        cfg = SwarmConfig(workdir="build_output_test", db_path=":memory:",
+                          audit_path="build_output_test/a.log",
+                          max_cost_per_episode=1.0)
+        moa = fresh_moa()
+        moa.config = cfg
+        moa.bootstrap_season(1, num_episodes=8, seed=7)
+        ep = moa.produce_episode(1, 1)  # all-mock => $0 => under cap
+        self.assertTrue(ep.qa.passed)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Optional
 
 # Minimum required subtitle languages (Module 3.1). Operator may extend.
 DEFAULT_LANGUAGES: list[str] = ["en", "zh-Hans", "ms", "es", "ar", "pt-BR"]
@@ -45,6 +46,8 @@ class SwarmConfig:
     platforms: list[str] = field(
         default_factory=lambda: ["tiktok", "youtube", "instagram", "facebook", "x"])
     family_appropriate: bool = True
+    # hard per-episode cost cap (USD). None = no cap (just report the estimate).
+    max_cost_per_episode: Optional[float] = None
     workdir: str = "build_output"
     db_path: str = "build_output/vgen_state.db"
     audit_path: str = "build_output/audit.log"

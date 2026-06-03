@@ -168,6 +168,41 @@ check (~20% of lines) is similarity-based: it tolerates normal paraphrasing and
 only fails the episode on systemic breakdown. DeepL can be added later as an
 alternative `TranslationProvider`.
 
+### Budget video + audio (no per-second video billing)
+
+AI text-to-video is the one line item that can cost a fortune (priced per second
+of output). The **budget pipeline** avoids it entirely — it builds episodes from
+still images animated with ffmpeg, plus free synthesised/library audio:
+
+```bash
+# install ffmpeg first (e.g. brew install ffmpeg / apt-get install ffmpeg)
+python3 run_demo.py --budget            # ffmpeg slideshow video + free audio
+python3 run_demo.py --budget --cap 0.50 # also enforce a $0.50/episode hard cap
+```
+
+Every run prints a cost estimate before/after generation. Typical figures:
+
+```
+  $ 0.0031  text/LLM     (DeepSeek)
+  $ 0.2000  images       (5 x DALL-E 3 thumbnails+stills; use FLUX/mock for ~$0)
+  $ 0.0000  video        (ffmpeg slideshow — free)
+  $ 0.0000  audio        (synth/library — free)
+  -------
+  $ 0.2031  TOTAL        vs ~$56 for a full Veo text-to-video episode
+```
+
+- **`SlideshowVideo`** (`providers/ffmpeg_media.py`) generates one still per
+  scene (via your image provider), Ken-Burns-animates each to 9:16, and
+  concatenates them. Falls back to a placeholder if ffmpeg is missing.
+- **`FreeMusic` / `FreeSFX`** synthesise audio with ffmpeg, or use royalty-free
+  tracks from `FreeMusic(library_dir=...)`.
+- **Cost guard:** `SwarmConfig.max_cost_per_episode` (or `--cap`) blocks any
+  episode whose estimate exceeds the limit *before* a paid API is called. See
+  `vgen_swarm/cost.py`.
+
+Recommended workflow: validate hooks/format cheaply on the budget pipeline
+first; only graduate specific proven episodes to paid AI video.
+
 ### Full production — the remaining services
 
 1. `pip install -r requirements-optional.txt` for whichever adapters you wire.

@@ -16,6 +16,7 @@ from .agents import (AudioComposer, MetadataComposer, Publisher, PuzzleWeaver,
                      VideoDirector, QualityCheckError)
 from .audit_log import AuditLog
 from .config import SwarmConfig
+from .cost import BudgetExceeded, estimate_episode
 from .models import Stage
 from .providers.base import ProviderBundle
 from .state.db import StateDB
@@ -32,6 +33,7 @@ class EpisodeBundle:
     subs: object = None
     meta: object = None
     qa: object = None
+    cost_estimate: object = None
 
 
 class MasterOrchestrator:
@@ -101,6 +103,28 @@ class MasterOrchestrator:
 
         bundle.script = self._retry(Stage.WRITING.value, ref,
                                     lambda: self.sa03.write(season, episode))
+
+        # Estimate cost before any (potentially paid) media generation runs, and
+        # enforce the operator's per-episode cap if one is set.
+        est = estimate_episode(
+            self.providers, duration_sec=bundle.script.duration_sec,
+            num_scenes=len(bundle.script.scenes),
+            num_dialogue_lines=len(bundle.script.all_dialogue),
+            num_languages=len(self.config.languages),
+            num_platforms=len(self.config.platforms))
+        bundle.cost_estimate = est
+        self._log("cost_estimate", est.as_dict(), episode_ref=ref)
+        cap = self.config.max_cost_per_episode
+        if cap is not None and est.total > cap:
+            self.db.set_stage(ref, Stage.FAILED.value,
+                              {"budget_exceeded": True, "estimate_usd": est.total,
+                               "cap_usd": cap})
+            self._log("budget_exceeded",
+                      {"estimate_usd": est.total, "cap_usd": cap},
+                      episode_ref=ref, status="fail")
+            raise BudgetExceeded(
+                f"{ref}: estimated ${est.total} exceeds cap ${cap}")
+
         self.db.set_stage(ref, Stage.VIDEO.value)
         bundle.video = self._retry(
             Stage.VIDEO.value, ref,

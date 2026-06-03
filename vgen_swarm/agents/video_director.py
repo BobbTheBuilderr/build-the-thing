@@ -60,16 +60,24 @@ class VideoDirector(BaseAgent):
         prompts = [self.craft_prompt(ref, vars(s)) for s in script.scenes]
 
         last_meta = {}
+        scene_metas: list[dict] = []
         for attempt in range(1, VIDEO_MAX_RETRIES + 1):
-            metas = [self.providers.video.render_scene(p, out_path) for p in prompts]
-            last_meta = metas[-1] if metas else {}
-            if all(self._quality_ok(m) for m in metas):
+            scene_metas = [self.providers.video.render_scene(p, out_path)
+                           for p in prompts]
+            last_meta = scene_metas[-1] if scene_metas else {}
+            if all(self._quality_ok(m) for m in scene_metas):
                 break
             self.log("render_retry", {"attempt": attempt}, episode_ref=ref,
                      status="retry")
         else:
             raise QualityCheckError(
                 f"{ref}: video failed quality check after {VIDEO_MAX_RETRIES} retries")
+
+        # If the provider builds per-scene clips (e.g. the ffmpeg slideshow),
+        # concatenate them into the final episode video.
+        assemble = getattr(self.providers.video, "assemble", None)
+        if callable(assemble):
+            assemble([m.get("clip_path") for m in scene_metas], out_path)
 
         # character consistency vs visual bible (CLIP similarity, mocked high)
         consistency = {name: 0.93 for name in cast_names}
